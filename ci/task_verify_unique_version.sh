@@ -28,7 +28,7 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-URL="s3://$BUCKET/$PROJECT/$PROJECT-$VERSION.zip"
+URL="s3://$BUCKET/$PROJECT/$PROJECT-$VERSION.tar.gz"
 aws s3 ls "$URL" >/dev/null
 if [ $? = 0 ]; then
     echo "$URL already exists! (Oops)"

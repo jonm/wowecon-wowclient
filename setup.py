@@ -1,10 +1,11 @@
 from setuptools import setup, find_packages
 
-__version__ = '0.1.0'
-
 def read(filename):
     with open(filename) as f:
         return f.read()
+
+__version__ = read('VERSION')
+
 
 setup(
     name = 'wowclient',

@@ -72,7 +72,7 @@ class WoWCommunityAPIClient:
         resp = requests.get(uri, headers = headers)
         end = time.time()
         logging.info("Fetch of %s complete (%ld ms)" % \
-                            (uri, long((end - start) * 1000.0)))
+                            (uri, int((end - start) * 1000.0)))
         
         resp.raise_for_status()
         body = resp.json()

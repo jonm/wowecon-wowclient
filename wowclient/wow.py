@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2019 Jonathan Moore
+# Copyright (C) 2017-2020 Jonathan Moore
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@ import json
 import logging
 import time
 
+from dateutil.parser import parse
 import requests
 from requests.auth import HTTPBasicAuth
 
@@ -61,55 +62,41 @@ class WoWCommunityAPIClient:
         self._token_expires = time.time() + body['expires_in']
         return self._access_token
 
-    def get_auction_data_status(self, realm, locale='en_US'):
-        uri = "%s/wow/auction/data/%s?locale=%s" % \
-            (self._endpoint, realm, locale)
+    def _oauth_get(self, uri):
         headers = { 'Authorization' :
                     "Bearer %s" % (self._get_access_token(),) }
 
         start = time.time()
-        logging.info("Fetching %s..." % uri)
         resp = requests.get(uri, headers = headers)
         end = time.time()
-        logging.info("Fetch of %s complete (%ld ms)" % \
-                            (uri, int((end - start) * 1000.0)))
-        
+        logging.info("GET %s (%ld ms)" % (uri, int((end - start) * 1000.0)))
         resp.raise_for_status()
-        body = resp.json()
-        if 'files' not in body:
-            msg = "unexpected JSON body: %s" % json.dumps(body)
-            logging.error(msg)
-            raise ValueError(msg)
-        out = []
-        for obj in body['files']:
-            if 'url' not in obj or 'lastModified' not in obj:
-                msg = "unexpected JSON object: %s" % json.dumps(obj)
-                logging.error(msg)
-                raise ValueError(msg)
-            lm = datetime.datetime.fromtimestamp(obj['lastModified'] / 1e3)
-            out.append(AuctionDataBatch(obj['url'], lm))
-        return out
+        return resp.json()
+    
+    def get_realm(self, realm, locale='en_US'):
+        uri = "%s/data/wow/realm/%s?namespace=dynamic-us&locale=%s" % \
+              (self._endpoint, realm, locale)
+        return self._oauth_get(uri)
 
-    def get_item_info(self, item_id, locale='en_US', context=None,
-                      bonus_lists=[]):
+    def get_auction_data_status(self, realm, locale='en_US'):
+        realm_info = self.get_realm(realm, locale)
+        
+        connected_realm = self._oauth_get(realm_info['connected_realm']['href'])
 
-        if not context:
-            uri = "%s/wow/item/%d?locale=%s" % \
-                (self._endpoint, item_id, locale)
-        elif len(bonus_lists) == 0:
-            uri = "%s/wow/item/%d/%s?locale=%s" % \
-                (self._endpoint, item_id, context, locale)
-        else:
-            uri = "%s/wow/item/%d/%s?bl=%s&locale=%s" % \
-                (self._endpoint, item_id, context,
-                 ','.join(map(lambda i: str(i), bonus_lists)),
-                 locale)
 
         headers = { 'Authorization' :
                     "Bearer %s" % (self._get_access_token(),) }
-
+        start = time.time()
+        uri = connected_realm['auctions']['href']
         resp = requests.get(uri, headers = headers)
+        end = time.time()
+        logging.info("HEAD %s (%ld ms)" % (uri, int((end - start) * 1000.0)))
         resp.raise_for_status()
-        return resp.json()
 
+        lm = parse(resp.headers['Last-Modified'])
+        return [AuctionDataBatch(uri, lm)]
+
+    def get_item_info(self, item_id, locale='en_US', context=None,
+                      bonus_lists=[]):
+        raise Exception("not implemented")
 

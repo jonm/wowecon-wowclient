@@ -79,7 +79,7 @@ class WoWCommunityAPIClient:
               (self._endpoint, realm, locale)
         return self._oauth_get(uri)
 
-    def _append_query_params(uri, params):
+    def _append_query_params(self, uri, params):
         up = urllib.parse.urlparse(uri)
         current_params = urllib.parse.parse_qs(up.query)
         for k in params.keys():

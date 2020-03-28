@@ -87,7 +87,7 @@ class WoWCommunityAPIClient:
             current_params[k].append(params[k])
         out_params = urllib.parse.urlencode(current_params, doseq=True)
         return urllib.parse.urlunparse((up.scheme, up.netloc, up.path,
-                                        up.params, out_params, up.fragment)
+                                        up.params, out_params, up.fragment))
     
     def get_auction_data_status(self, realm, locale='en_US'):
         realm_info = self.get_realm(realm, locale)

@@ -23,9 +23,10 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 class AuctionDataBatch:
-    def __init__(self, url, last_modified):
+    def __init__(self, url, last_modified, access_token = None):
         self.url = url
         self.last_modified = last_modified
+        self.access_token = access_token
 
     def __repr__(self):
         return "AuctionDataBatch(url=%s, last_modified=%s)" % (self.url.__repr__(),
@@ -94,7 +95,7 @@ class WoWCommunityAPIClient:
         resp.raise_for_status()
 
         lm = parse(resp.headers['Last-Modified'])
-        return [AuctionDataBatch(uri, lm)]
+        return [AuctionDataBatch(uri, lm, self._get_access_token())]
 
     def get_item_info(self, item_id, locale='en_US', context=None,
                       bonus_lists=[]):

@@ -17,16 +17,16 @@ import datetime
 import json
 import logging
 import time
+import urllib.parse
 
 from dateutil.parser import parse
 import requests
 from requests.auth import HTTPBasicAuth
 
 class AuctionDataBatch:
-    def __init__(self, url, last_modified, access_token = None):
+    def __init__(self, url, last_modified):
         self.url = url
         self.last_modified = last_modified
-        self.access_token = access_token
 
     def __repr__(self):
         return "AuctionDataBatch(url=%s, last_modified=%s)" % (self.url.__repr__(),
@@ -79,6 +79,16 @@ class WoWCommunityAPIClient:
               (self._endpoint, realm, locale)
         return self._oauth_get(uri)
 
+    def _append_query_params(uri, params):
+        up = urllib.parse.urlparse(uri)
+        current_params = urllib.parse.parse_qs(up.query)
+        for k in params.keys():
+            if k not in current_params: current_params[k] = []
+            current_params[k].append(params[k])
+        out_params = urllib.parse.urlencode(current_params, doseq=True)
+        return urllib.parse.urlunparse((up.scheme, up.netloc, up.path,
+                                        up.params, out_params, up.fragment)
+    
     def get_auction_data_status(self, realm, locale='en_US'):
         realm_info = self.get_realm(realm, locale)
         
@@ -95,7 +105,9 @@ class WoWCommunityAPIClient:
         resp.raise_for_status()
 
         lm = parse(resp.headers['Last-Modified'])
-        return [AuctionDataBatch(uri, lm, self._get_access_token())]
+
+        auth_uri = self._append_query_params(uri, { 'access_token' : self._get_access_token() })
+        return [AuctionDataBatch(auth_uri, lm)]
 
     def get_item_info(self, item_id, locale='en_US', context=None,
                       bonus_lists=[]):
